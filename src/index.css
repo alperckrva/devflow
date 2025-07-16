@@ -1,10 +1,341 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Katex matematik formülleri için */
+@import 'katex/dist/katex.min.css';
+
+/* Rich text editor styles */
+.editor-content {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* Matematik formül stilleri */
+.math-formula {
+  background-color: #f0f0f0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  border: 1px solid #d1d5db;
+  display: inline-block;
+  margin: 0 2px;
+}
+
+/* Kod blokları için syntax highlighting */
+.code-block {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 16px;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 13px;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+
+/* Ace Editor stilleri */
+.ace_editor {
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+}
+
+/* PDF önizleme için stiller */
+.prose {
+  max-width: none;
+}
+
+.prose h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin-bottom: 0.5em;
+  color: #1f2937;
+}
+
+.prose h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  color: #374151;
+}
+
+.prose h3 {
+  font-size: 1.25em;
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  color: #4b5563;
+}
+
+.prose p {
+  margin-bottom: 1em;
+  line-height: 1.6;
+}
+
+.prose ul, .prose ol {
+  margin-bottom: 1em;
+  padding-left: 1.5em;
+}
+
+.prose li {
+  margin-bottom: 0.5em;
+}
+
+.prose blockquote {
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1em;
+  margin: 1em 0;
+  font-style: italic;
+  color: #6b7280;
+}
+
+.prose pre {
+  background-color: #f3f4f6;
+  padding: 1em;
+  border-radius: 0.5em;
+  overflow-x: auto;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.875em;
+}
+
+.prose code {
+  background-color: #f3f4f6;
+  padding: 0.125em 0.25em;
+  border-radius: 0.25em;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.875em;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid #d1d5db;
+  padding: 0.5em;
+  text-align: left;
+}
+
+.prose th {
+  background-color: #f9fafb;
+  font-weight: bold;
+}
+
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5em;
+  margin: 1em 0;
+}
+
+/* React Quill Editor Styles */
+.ql-toolbar {
+  border-radius: 8px 8px 0 0 !important;
+  border-color: #d1d5db !important;
+}
+
+.ql-container {
+  border-radius: 0 0 8px 8px !important;
+  border-color: #d1d5db !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+}
+
+.ql-editor {
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  min-height: 500px !important;
+}
+
+.ql-editor.ql-blank::before {
+  font-style: italic !important;
+  color: #9ca3af !important;
+}
+
+/* Dark mode styles for Quill */
+.quill-dark .ql-toolbar {
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+}
+
+.quill-dark .ql-container {
+  border-color: #4b5563 !important;
+}
+
+.quill-dark .ql-editor {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+.quill-dark .ql-toolbar .ql-stroke {
+  stroke: #9ca3af !important;
+}
+
+.quill-dark .ql-toolbar .ql-fill {
+  fill: #9ca3af !important;
+}
+
+.quill-dark .ql-toolbar button:hover .ql-stroke {
+  stroke: #f3f4f6 !important;
+}
+
+.quill-dark .ql-toolbar button:hover .ql-fill {
+  fill: #f3f4f6 !important;
+}
+
+.quill-dark .ql-picker-label {
+  color: #9ca3af !important;
+}
+
+.quill-dark .ql-picker-options {
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+}
+
+.quill-dark .ql-picker-item {
+  color: #f9fafb !important;
+}
+
+.quill-dark .ql-picker-item:hover {
+  background-color: #4b5563 !important;
+}
+
+/* Light mode styles for Quill */
+.quill-light .ql-toolbar {
+  background-color: #f9fafb !important;
+  border-color: #d1d5db !important;
+}
+
+.quill-light .ql-container {
+  border-color: #d1d5db !important;
+}
+
+.quill-light .ql-editor {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
+/* Tiptap Editor Styles */
+.ProseMirror {
+  outline: none;
+  padding: 1rem;
+  min-height: 500px;
+  font-size: 18px;
+  line-height: 1.8;
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
+.ProseMirror p {
+  margin: 0.75rem 0;
+}
+
+.ProseMirror h1 {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 1.5rem 0 1rem 0;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 1.25rem 0 0.75rem 0;
+}
+
+.ProseMirror h3 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin: 1rem 0 0.5rem 0;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 0.75rem 0;
+}
+
+.ProseMirror li {
+  margin: 0.25rem 0;
+}
+
+.ProseMirror blockquote {
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  font-style: italic;
+  color: #6b7280;
+}
+
+.ProseMirror code {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.875rem;
+}
+
+.ProseMirror pre {
+  background-color: #f3f4f6;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.875rem;
+  margin: 1rem 0;
+}
+
+/* Dark mode için Tiptap */
+.dark .ProseMirror {
+  color: #f9fafb;
+}
+
+.dark .ProseMirror blockquote {
+  border-left-color: #4b5563;
+  color: #9ca3af;
+}
+
+.dark .ProseMirror code {
+  background-color: #374151;
+  color: #f9fafb;
+}
+
+.dark .ProseMirror pre {
+  background-color: #374151;
+  color: #f9fafb;
+}
+
+/* Responsive tasarım */
+@media (max-width: 768px) {
+  .ql-toolbar {
+    font-size: 12px;
+  }
+  
+  .ql-editor {
+    font-size: 13px !important;
+    min-height: 300px !important;
+  }
+
+  .ProseMirror {
+    padding: 0.75rem;
+    min-height: 300px;
+    font-size: 14px;
+  }
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  
+  /* Turkish character support */
+  font-feature-settings: "kern" 1, "liga" 1;
+  text-rendering: optimizeLegibility;
 }
 
 code {
