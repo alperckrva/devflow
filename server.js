@@ -9,6 +9,14 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// 🔒 GÜVENLİK: API anahtarını kontrol et
+const apiKey = process.env.OPENROUTER_API_KEY;
+if (!apiKey) {
+  console.error('❌ OPENROUTER_API_KEY environment variable bulunamadı!');
+  console.error('🔧 .env dosyasında OPENROUTER_API_KEY=your-key-here şeklinde tanımlayın');
+  process.exit(1);
+}
+
 // OpenRouter proxy endpoint
 app.post('/api/ai-analysis', async (req, res) => {
   try {
@@ -26,7 +34,7 @@ app.post('/api/ai-analysis', async (req, res) => {
       presence_penalty: 0
     }, {
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY || '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'}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000'
       }
@@ -49,4 +57,5 @@ app.post('/api/ai-analysis', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Proxy server running on http://localhost:${PORT}`);
   console.log('🔗 Ready to proxy AI requests!');
+  console.log('🔑 API key configured:', apiKey ? '✅ Yes' : '❌ No');
 }); 

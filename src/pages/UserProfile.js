@@ -24,6 +24,9 @@ const UserProfile = () => {
   const [changeStatus, setChangeStatus] = useState('idle'); // 'idle', 'saving', 'success', 'error'
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [emailVerificationStatus, setEmailVerificationStatus] = useState('idle'); // 'idle', 'sending', 'sent', 'checking'
+  const [emailVerificationMessage, setEmailVerificationMessage] = useState('');
+  const [cooldownTime, setCooldownTime] = useState(0);
   const { darkMode } = useTheme();
   const { user } = useUser();
   const timeoutRefs = useRef([]);
@@ -81,6 +84,96 @@ const UserProfile = () => {
     setErrorMessage('');
     setSuccessMessage('');
   }, []);
+
+  // Clear email verification messages
+  const clearEmailMessages = useCallback(() => {
+    setEmailVerificationMessage('');
+  }, []);
+
+  // Cooldown timer kontrolü
+  useEffect(() => {
+    if (!user) return;
+    
+    const checkCooldown = () => {
+      const lastSent = localStorage.getItem(`emailVerification_${user.uid}`);
+      if (lastSent) {
+        const timeSinceLastSent = Date.now() - parseInt(lastSent);
+        const cooldownSeconds = 60;
+        if (timeSinceLastSent < cooldownSeconds * 1000) {
+          const remainingSeconds = Math.ceil((cooldownSeconds * 1000 - timeSinceLastSent) / 1000);
+          setCooldownTime(remainingSeconds);
+          return;
+        }
+      }
+      setCooldownTime(0);
+    };
+
+    checkCooldown();
+    const interval = setInterval(checkCooldown, 1000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Email doğrulama gönder
+  const handleSendEmailVerification = useCallback(async () => {
+    clearEmailMessages();
+    
+    try {
+      setEmailVerificationStatus('sending');
+      const message = await firebaseService.emailDogrulamaGonder();
+      setEmailVerificationMessage(message);
+      setEmailVerificationStatus('sent');
+      
+      // 5 saniye sonra mesajı temizle
+      safeTimeout(() => {
+        setEmailVerificationMessage('');
+        setEmailVerificationStatus('idle');
+      }, 5000);
+      
+    } catch (error) {
+      setEmailVerificationMessage(error.message);
+      setEmailVerificationStatus('idle');
+      
+      // 5 saniye sonra hata mesajını temizle
+      safeTimeout(() => {
+        setEmailVerificationMessage('');
+      }, 5000);
+    }
+  }, [clearEmailMessages, safeTimeout]);
+
+  // Email doğrulama durumunu kontrol et
+  const handleCheckEmailVerification = useCallback(async () => {
+    clearEmailMessages();
+    
+    try {
+      setEmailVerificationStatus('checking');
+      const isVerified = await firebaseService.emailDogrulumunuKontrolEt();
+      
+      if (isVerified) {
+        setEmailVerificationMessage('Email başarıyla doğrulandı! Sayfa yenileniyor...');
+        setEmailVerificationStatus('idle');
+        
+        // Sayfayı yenile
+        safeTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        setEmailVerificationMessage('Email henüz doğrulanmamış. Lütfen email kutunuzu kontrol edin.');
+        setEmailVerificationStatus('idle');
+        
+        safeTimeout(() => {
+          setEmailVerificationMessage('');
+        }, 3000);
+      }
+      
+    } catch (error) {
+      setEmailVerificationMessage(error.message);
+      setEmailVerificationStatus('idle');
+      
+      safeTimeout(() => {
+        setEmailVerificationMessage('');
+      }, 5000);
+    }
+  }, [clearEmailMessages, safeTimeout]);
 
   // Şifre değiştirme
   const handlePasswordChange = useCallback(async (e) => {
@@ -240,6 +333,97 @@ const UserProfile = () => {
                   </p>
                 </div>
               </div>
+              
+              {/* Email Doğrulama Aksiyonları */}
+              {!user.emailVerified && (
+                <div className={`p-4 rounded-lg border-2 border-dashed ${
+                  darkMode ? 'border-orange-600 bg-orange-900/20' : 'border-orange-300 bg-orange-50'
+                }`}>
+                  <div className="flex items-start space-x-3">
+                    <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className={`text-sm font-medium mb-2 ${
+                        darkMode ? 'text-orange-200' : 'text-orange-800'
+                      }`}>
+                        Email Adresinizi Doğrulayın
+                      </p>
+                                             <p className={`text-xs mb-3 ${
+                         darkMode ? 'text-orange-300' : 'text-orange-700'
+                       }`}>
+                         Hesabınızın güvenliği için email adresinizi doğrulamanız önemlidir.
+                       </p>
+                       
+                       <div className={`mb-3 p-2 rounded border-l-4 ${
+                         darkMode 
+                           ? 'bg-blue-900/20 border-blue-600 text-blue-200' 
+                           : 'bg-blue-50 border-blue-400 text-blue-700'
+                       }`}>
+                         <p className="text-xs font-medium mb-1">📧 Email Gelmedi Mi?</p>
+                         <p className="text-xs">
+                           • Spam/Gereksiz klasörünüzü kontrol edin<br/>
+                           • Email adresi: <span className="font-mono">noreply@devflow-platform.firebaseapp.com</span><br/>
+                           • Gmail kullanıyorsanız "Sosyal" sekmesine bakın
+                         </p>
+                       </div>
+                      
+                      {/* Email Verification Messages */}
+                      {emailVerificationMessage && (
+                        <div className={`mb-3 p-2 rounded text-xs ${
+                          emailVerificationStatus === 'sent' 
+                            ? (darkMode ? 'bg-green-900/50 text-green-200 border border-green-700' : 'bg-green-50 text-green-700 border border-green-200')
+                            : (darkMode ? 'bg-red-900/50 text-red-200 border border-red-700' : 'bg-red-50 text-red-700 border border-red-200')
+                        }`}>
+                          {emailVerificationMessage}
+                        </div>
+                      )}
+                      
+                      <div className="flex flex-col space-y-2">
+                        <button
+                          onClick={handleSendEmailVerification}
+                          disabled={emailVerificationStatus === 'sending' || cooldownTime > 0}
+                          className={`text-xs px-3 py-1.5 rounded font-medium transition-colors ${
+                            emailVerificationStatus === 'sending' || cooldownTime > 0
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-orange-600 hover:bg-orange-700 text-white'
+                          }`}
+                        >
+                          {emailVerificationStatus === 'sending' ? (
+                            <>
+                              <div className="inline-block animate-spin h-3 w-3 mr-1 border border-white border-t-transparent rounded-full"></div>
+                              Gönderiliyor...
+                            </>
+                          ) : cooldownTime > 0 ? (
+                            `${cooldownTime}s Bekleyin`
+                          ) : (
+                            'Doğrulama Emaili Gönder'
+                          )}
+                        </button>
+                        
+                        <button
+                          onClick={handleCheckEmailVerification}
+                          disabled={emailVerificationStatus === 'checking'}
+                          className={`text-xs px-3 py-1.5 rounded font-medium border transition-colors ${
+                            emailVerificationStatus === 'checking'
+                              ? 'border-gray-300 text-gray-500 cursor-not-allowed'
+                              : darkMode 
+                                ? 'border-orange-600 text-orange-400 hover:bg-orange-900/20'
+                                : 'border-orange-600 text-orange-600 hover:bg-orange-50'
+                          }`}
+                        >
+                          {emailVerificationStatus === 'checking' ? (
+                            <>
+                              <div className="inline-block animate-spin h-3 w-3 mr-1 border border-orange-500 border-t-transparent rounded-full"></div>
+                              Kontrol Ediliyor...
+                            </>
+                          ) : (
+                            'Doğrulama Durumunu Kontrol Et'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import firebaseService from '../services/firebaseService';
+import { StatCardSkeleton } from '../components/LoadingSkeleton';
+import toast from 'react-hot-toast';
 
 const AnaSayfa = () => {
   const [istatistikler, setIstatistikler] = useState({
@@ -39,6 +41,19 @@ const AnaSayfa = () => {
           yeniNot: stats.yeniNot || 0,
           loading: false
         });
+        
+        // Welcome toast for authenticated users
+        if (stats.kodIncelemesi === 0 && stats.tamamlananGorev === 0 && stats.yeniNot === 0) {
+          toast('👋 DevFlow\'a hoş geldin! Hemen başlayabilirsin.', {
+            icon: '🚀',
+            duration: 4000,
+            style: {
+              background: '#3b82f6',
+              color: '#fff',
+            },
+          });
+        }
+        
       } catch (error) {
         console.error("İstatistikler getirilirken hata:", error);
         setIstatistikler({
@@ -46,6 +61,10 @@ const AnaSayfa = () => {
           tamamlananGorev: 0,
           yeniNot: 0,
           loading: false
+        });
+        
+        toast.error('İstatistikler yüklenirken hata oluştu', {
+          duration: 3000,
         });
       }
     };
@@ -100,7 +119,7 @@ const AnaSayfa = () => {
       </div>
 
       {/* Ana Menü Butonları */}
-      <div className="flex justify-center mb-8">
+      <div className="mb-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {hizliErisimKartlari.map((kart, index) => (
             <Link
@@ -131,59 +150,64 @@ const AnaSayfa = () => {
             Bu Hafta
           </h2>
           <div className="grid grid-cols-3 gap-4">
-                         <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800 hover:shadow-md transition-all duration-300">
-               {istatistikler.loading ? (
-                 <div className="animate-pulse">
-                   <div className="h-8 bg-blue-200 dark:bg-blue-700 rounded mb-1"></div>
-                   <div className="h-4 bg-blue-100 dark:bg-blue-800 rounded"></div>
-                 </div>
-               ) : (
-                 <>
-                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">{istatistikler.kodIncelemesi}</div>
-                   <div className="text-sm text-gray-700 dark:text-gray-300 font-medium">Kod İncelemesi</div>
-                 </>
-               )}
-             </div>
-             <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-800 hover:shadow-md transition-all duration-300">
-               {istatistikler.loading ? (
-                 <div className="animate-pulse">
-                   <div className="h-8 bg-green-200 dark:bg-green-700 rounded mb-1"></div>
-                   <div className="h-4 bg-green-100 dark:bg-green-800 rounded"></div>
-                 </div>
-               ) : (
-                 <>
-                   <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">{istatistikler.tamamlananGorev}</div>
-                   <div className="text-sm text-gray-700 dark:text-gray-300 font-medium">Tamamlanan Görev</div>
-                 </>
-               )}
-             </div>
-             <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800 hover:shadow-md transition-all duration-300">
-               {istatistikler.loading ? (
-                 <div className="animate-pulse">
-                   <div className="h-8 bg-orange-200 dark:bg-orange-700 rounded mb-1"></div>
-                   <div className="h-4 bg-orange-100 dark:bg-orange-800 rounded"></div>
-                 </div>
-               ) : (
-                 <>
-                   <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 mb-1">{istatistikler.yeniNot}</div>
-                   <div className="text-sm text-gray-700 dark:text-gray-300 font-medium">Yeni Not</div>
-                 </>
-               )}
-             </div>
+            {/* Kod İncelemesi Stat */}
+            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800 hover:shadow-md transition-all duration-300">
+              {istatistikler.loading ? (
+                <StatCardSkeleton />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">{istatistikler.kodIncelemesi}</div>
+                  <div className="text-sm text-gray-700 dark:text-gray-300 font-medium">Kod İncelemesi</div>
+                </>
+              )}
+            </div>
+            
+            {/* Tamamlanan Görev Stat */}
+            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-800 hover:shadow-md transition-all duration-300">
+              {istatistikler.loading ? (
+                <StatCardSkeleton />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">{istatistikler.tamamlananGorev}</div>
+                  <div className="text-sm text-gray-700 dark:text-gray-300 font-medium">Tamamlanan Görev</div>
+                </>
+              )}
+            </div>
+            
+            {/* Yeni Not Stat */}
+            <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800 hover:shadow-md transition-all duration-300">
+              {istatistikler.loading ? (
+                <StatCardSkeleton />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 mb-1">{istatistikler.yeniNot}</div>
+                  <div className="text-sm text-gray-700 dark:text-gray-300 font-medium">Yeni Not</div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Son Aktiviteler */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-            <Clock className="h-4 w-4 mr-2" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 backdrop-blur-sm">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+            <Clock className="h-5 w-5 mr-2 text-purple-500" />
             Son Aktiviteler
           </h2>
-                     <div className="text-center py-8">
-             <Clock className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
-             <p className="text-sm text-gray-500 dark:text-gray-400">Henüz aktivite yok</p>
-             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">İlk aktiviteleriniz burada görünecek</p>
-           </div>
+          <div className="space-y-3">
+            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+              Platform'a hoş geldin!
+            </div>
+            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+              Hesabın aktif edildi
+            </div>
+            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+              <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+              Tüm özellikler hazır
+            </div>
+          </div>
         </div>
       </div>
     </div>

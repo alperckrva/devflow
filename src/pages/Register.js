@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Eye, EyeOff, UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -15,6 +16,8 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [emailValidating, setEmailValidating] = useState(false);
   
   const { kayitOl } = useUser();
   const { darkMode } = useTheme();
@@ -27,7 +30,123 @@ const Register = () => {
     });
   };
 
-  const validateForm = () => {
+  // Real-time email existence check
+  const checkEmailExists = async (email) => {
+    try {
+      // Ücretsiz email validation API'si (Abstract API)
+      const response = await fetch(`https://emailvalidation.abstractapi.com/v1/?api_key=YOUR_API_KEY&email=${email}`);
+      
+      if (!response.ok) {
+        // API çalışmıyorsa basic validation'a düş
+        return validateEmailBasic(email);
+      }
+      
+      const data = await response.json();
+      
+      if (data.is_valid_format?.value === false) {
+        return { valid: false, message: 'Geçersiz email formatı' };
+      }
+      
+      if (data.is_mx_found?.value === false) {
+        return { valid: false, message: 'Bu email adresi bulunamadı' };
+      }
+      
+      if (data.is_smtp_valid?.value === false) {
+        return { valid: false, message: 'Bu email adresi mevcut değil' };
+      }
+      
+      if (data.is_disposable?.value === true) {
+        return { valid: false, message: 'Geçici email adresleri kabul edilmez' };
+      }
+      
+      return { valid: true };
+      
+    } catch (error) {
+      console.error('Email validation API error:', error);
+      // API hatası durumunda basic validation kullan
+      return validateEmailBasic(email);
+    }
+  };
+
+  // Fallback basic email validation
+  const validateEmailBasic = (email) => {
+    // Basic format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return { valid: false, message: 'Geçersiz email formatı' };
+    }
+
+    // Common disposable email domains
+    const disposableDomains = [
+      '10minutemail.com', 'tempmail.org', 'guerrillamail.com', 
+      'mailinator.com', 'throwaway.email', 'temp-mail.org'
+    ];
+    
+    const domain = email.split('@')[1];
+    if (disposableDomains.includes(domain)) {
+      return { valid: false, message: 'Geçici email adresleri kabul edilmez' };
+    }
+
+    // Check for common typos in popular domains
+    const popularDomains = {
+      'gmial.com': 'gmail.com',
+      'gmai.com': 'gmail.com', 
+      'hotmial.com': 'hotmail.com',
+      'outlok.com': 'outlook.com',
+      'yahooo.com': 'yahoo.com'
+    };
+
+    if (popularDomains[domain]) {
+      return { 
+        valid: false, 
+        message: `"${domain}" yerine "${popularDomains[domain]}" demek istediniz mi?` 
+      };
+    }
+
+    // Gmail için ek kontroller
+    if (domain === 'gmail.com') {
+      const localPart = email.split('@')[0];
+      
+      // Gmail'de çok kısa username kontrolü
+      if (localPart.length < 3) {
+        return { valid: false, message: 'Gmail adresi çok kısa görünüyor' };
+      }
+      
+      // Gmail'de sadece random karakterler kontrolü
+      const randomPattern = /^[a-z]{10,}$/; // sadece 10+ harf
+      const numberPattern = /^\d+$/; // sadece rakam
+      const gibberishPattern = /^[a-z]{3}[a-z]{3}[a-z]{3}[a-z]+$/; // gdfgsdfgsdfsdf gibi
+      
+      if (randomPattern.test(localPart) || numberPattern.test(localPart)) {
+        return { 
+          valid: false, 
+          message: 'Gmail adresi şüpheli görünüyor. Lütfen gerçek email adresinizi girin.' 
+        };
+      }
+      
+      // Art arda aynı karakter kontrolü
+      if (/(.)\1{3,}/.test(localPart)) {
+        return { 
+          valid: false, 
+          message: 'Gmail adresi geçersiz karakter dizisi içeriyor' 
+        };
+      }
+    }
+
+    // Basic domain existence check (MX record simulation)
+    const validDomains = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com'];
+    if (!validDomains.includes(domain) && !domain.includes('.edu') && !domain.includes('.gov')) {
+      // Şüpheli domain uyarısı
+      return { 
+        valid: false, 
+        message: `"${domain}" domain'i doğrulanamadı. Lütfen email adresinizi kontrol edin.` 
+      };
+    }
+
+    return { valid: true };
+  };
+
+  const validateForm = async () => {
     const { name, email, password, confirmPassword } = formData;
     
     if (!name || !email || !password || !confirmPassword) {
@@ -37,6 +156,16 @@ const Register = () => {
     
     if (name.length < 2) {
       setError('İsim en az 2 karakter olmalı');
+      return false;
+    }
+
+    // Real-time email validation
+    setEmailValidating(true);
+    const emailValidation = await checkEmailExists(email);
+    setEmailValidating(false);
+    
+    if (!emailValidation.valid) {
+      setError(emailValidation.message);
       return false;
     }
     
@@ -56,15 +185,55 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    const isValid = await validateForm();
+    if (!isValid) return;
 
     try {
       setLoading(true);
       setError('');
+      setSuccess('');
+      
+      // Loading toast
+      const loadingToast = toast.loading('Hesap oluşturuluyor...');
+      
       await kayitOl(formData.email, formData.password, formData.name);
-      navigate('/ana-sayfa'); // Ana sayfaya yönlendir
+      
+      // Success message
+      const successMsg = 'Kayıt başarılı! Email doğrulama linki gönderildi. Spam klasörünüzü de kontrol etmeyi unutmayın.';
+      setSuccess(successMsg);
+      
+      toast.success('Kayıt başarılı! 🎉', {
+        id: loadingToast,
+        duration: 3000,
+      });
+      
+      // Email verification info toast
+      toast('📧 Email doğrulama linki gönderildi', {
+        icon: '📧',
+        duration: 5000,
+        style: {
+          background: '#3b82f6',
+          color: '#fff',
+        },
+      });
+      
+      // 3 saniye sonra ana sayfaya yönlendir
+      setTimeout(() => {
+        navigate('/ana-sayfa');
+      }, 3000);
+      
     } catch (error) {
+      // Dismiss loading toast
+      toast.dismiss();
+      
       setError(error.message);
+      toast.error(error.message, {
+        duration: 6000,
+        style: {
+          background: '#ef4444',
+          color: '#fff',
+        },
+      });
     } finally {
       setLoading(false);
     }
@@ -125,6 +294,21 @@ const Register = () => {
                   darkMode ? 'text-red-300' : 'text-red-700'
                 }`}>
                   {error}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {success && (
+            <div className={`rounded-md p-4 ${
+              darkMode ? 'bg-green-900/50 border border-green-700' : 'bg-green-50 border border-green-200'
+            }`}>
+              <div className="flex">
+                <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5" />
+                <div className={`text-sm ${
+                  darkMode ? 'text-green-300' : 'text-green-700'
+                }`}>
+                  {success}
                 </div>
               </div>
             </div>

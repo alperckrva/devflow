@@ -14,10 +14,16 @@ import reportWebVitals from './reportWebVitals';
     if (args[0] && typeof args[0] === 'string') {
       if (args[0].includes('insertBefore') || 
           args[0].includes('removeChild') || 
+          args[0].includes('NotFoundError') ||
+          args[0].includes('Failed to execute') ||
           args[0].includes('chrome-extension') ||
           args[0].includes('Warning: ReactDOM.render')) {
         return;
       }
+    }
+    // Also catch error objects
+    if (args[0] && args[0].name === 'NotFoundError') {
+      return;
     }
     originalError.apply(console, args);
   };
@@ -59,13 +65,30 @@ import reportWebVitals from './reportWebVitals';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
 // React 19 DOM error prevention - Use synchronous rendering
+// Wrap in StrictMode to catch development issues but handle DOM errors gracefully
 try {
   flushSync(() => {
-    root.render(<App />);
+    root.render(
+      process.env.NODE_ENV === 'development' ? (
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>
+      ) : (
+        <App />
+      )
+    );
   });
 } catch (error) {
   console.warn('React 19 flushSync failed, falling back to normal render:', error);
-  root.render(<App />);
+  root.render(
+    process.env.NODE_ENV === 'development' ? (
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    ) : (
+      <App />
+    )
+  );
 }
 
 // If you want to start measuring performance in your app, pass a function

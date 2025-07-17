@@ -6,7 +6,10 @@ import {
   updateProfile,
   updatePassword,
   reauthenticateWithCredential,
-  EmailAuthProvider
+  EmailAuthProvider,
+  sendEmailVerification,
+  reload,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { 
   collection, 
@@ -35,6 +38,18 @@ class FirebaseService {
       // Profil güncelle
       await updateProfile(user, {
         displayName: name
+      });
+      
+      // Email doğrulama gönder
+      const continueUrl = process.env.NODE_ENV === 'production' 
+        ? (window.location.hostname.includes('alperencukurova.com.tr') 
+           ? `${window.location.origin}/ana-sayfa`
+           : 'https://devflow-platform.netlify.app/ana-sayfa')
+        : 'http://localhost:3000/ana-sayfa';
+        
+      await sendEmailVerification(user, {
+        url: continueUrl,
+        handleCodeInApp: true
       });
       
       // Kullanıcı profili oluştur
@@ -92,6 +107,115 @@ class FirebaseService {
     } catch (error) {
       console.error('Şifre değiştirme hatası:', error);
       throw new Error(this.getPasswordChangeErrorMessage(error.code));
+    }
+  }
+
+  // Email doğrulama gönder
+  async emailDogrulamaGonder() {
+    try {
+      const user = auth.currentUser;
+      console.log('🔥 Email verification - Current user:', user?.email);
+      
+      if (!user) {
+        throw new Error('Kullanıcı oturumu bulunamadı');
+      }
+
+      if (user.emailVerified) {
+        throw new Error('Email zaten doğrulanmış');
+      }
+
+      // Rate limiting kontrolü - 60 saniye cooldown
+      const lastSent = localStorage.getItem(`emailVerification_${user.uid}`);
+      if (lastSent) {
+        const timeSinceLastSent = Date.now() - parseInt(lastSent);
+        const cooldownSeconds = 60; // 60 saniye cooldown
+        if (timeSinceLastSent < cooldownSeconds * 1000) {
+          const remainingSeconds = Math.ceil((cooldownSeconds * 1000 - timeSinceLastSent) / 1000);
+          throw new Error(`Email doğrulama çok sık gönderildi. ${remainingSeconds} saniye sonra tekrar deneyin.`);
+        }
+      }
+
+      console.log('📧 Email verification gönderiliyor:', user.email);
+      console.log('🔧 Firebase Config kontrol:', {
+        authDomain: window.location.hostname,
+        firebaseAuthDomain: 'devflow-platform.firebaseapp.com',
+        isProduction: process.env.NODE_ENV === 'production'
+      });
+      
+      // Firebase authorized domain'e uygun URL kullan
+      const continueUrl = process.env.NODE_ENV === 'production' 
+        ? (window.location.hostname.includes('alperencukurova.com.tr') 
+           ? `${window.location.origin}/ana-sayfa`
+           : 'https://devflow-platform.netlify.app/ana-sayfa')
+        : 'http://localhost:3000/ana-sayfa';
+      
+      await sendEmailVerification(user, {
+        url: continueUrl,
+        handleCodeInApp: true
+      });
+
+      // Başarılı gönderim zamanını kaydet
+      localStorage.setItem(`emailVerification_${user.uid}`, Date.now().toString());
+
+      console.log('✅ Email verification başarıyla gönderildi');
+      return 'Doğrulama emaili gönderildi. Lütfen email adresinizi kontrol edin.';
+    } catch (error) {
+      console.error('❌ Email doğrulama gönderme hatası:', error);
+      throw new Error(this.getEmailVerificationErrorMessage(error.code));
+    }
+  }
+
+  // Email doğrulama durumunu kontrol et ve güncelle
+  async emailDogrulumunuKontrolEt() {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('Kullanıcı oturumu bulunamadı');
+      }
+
+      // User bilgilerini yeniden yükle
+      await reload(user);
+      
+      return user.emailVerified;
+    } catch (error) {
+      console.error('Email doğrulama kontrol hatası:', error);
+      throw new Error('Email doğrulama durumu kontrol edilemedi');
+    }
+  }
+
+  // Şifre sıfırlama emaili gönder
+  async sifreSifirlamaGonder(email) {
+    try {
+      if (!email) {
+        throw new Error('Email adresi gerekli');
+      }
+
+      // Email format kontrolü
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new Error('Geçersiz email formatı');
+      }
+
+      console.log('🔑 Şifre sıfırlama emaili gönderiliyor:', email);
+
+      // Firebase authorized domain'e uygun URL kullan
+      const continueUrl = process.env.NODE_ENV === 'production' 
+        ? (window.location.hostname.includes('alperencukurova.com.tr') 
+           ? `${window.location.origin}/login`
+           : 'https://devflow-platform.netlify.app/login')
+        : 'http://localhost:3000/login';
+
+      await sendPasswordResetEmail(auth, email, {
+        url: continueUrl,
+        handleCodeInApp: false
+      });
+
+      console.log('✅ Şifre sıfırlama emaili başarıyla gönderildi');
+      return 'Şifre sıfırlama emaili gönderildi. Lütfen email kutunuzu kontrol edin.';
+      
+    } catch (error) {
+      console.error('❌ Şifre sıfırlama gönderme hatası:', error);
+      throw new Error(this.getPasswordResetErrorMessage(error.code));
     }
   }
 
@@ -373,13 +497,19 @@ class FirebaseService {
       case 'auth/invalid-email':
         return 'Geçersiz email adresi';
       case 'auth/user-not-found':
-        return 'Kullanıcı bulunamadı';
+        return 'Bu email adresi ile kayıtlı hesap bulunamadı';
       case 'auth/wrong-password':
-        return 'Hatalı şifre';
+        return 'Email veya şifre hatalı';
+      case 'auth/invalid-credential':
+        return 'Email veya şifre hatalı';
+      case 'auth/user-disabled':
+        return 'Bu hesap devre dışı bırakılmış';
       case 'auth/too-many-requests':
-        return 'Çok fazla deneme. Lütfen sonra tekrar deneyin';
+        return 'Çok fazla hatalı deneme. Lütfen bir süre bekleyip tekrar deneyin';
+      case 'auth/network-request-failed':
+        return 'İnternet bağlantısı sorunu. Lütfen tekrar deneyin';
       default:
-        return 'Bir hata oluştu. Lütfen tekrar deneyin';
+        return 'Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin';
     }
   }
 
@@ -391,6 +521,34 @@ class FirebaseService {
         return 'Mevcut şifre hatalı.';
       default:
         return 'Şifre değiştirilirken bir hata oluştu.';
+    }
+  }
+
+  getEmailVerificationErrorMessage(errorCode) {
+    switch (errorCode) {
+      case 'auth/too-many-requests':
+        return 'Çok fazla email doğrulama isteği gönderildi. Lütfen 1-2 saat sonra tekrar deneyin. Firebase güvenlik önlemi devrede.';
+      case 'auth/user-not-found':
+        return 'Kullanıcı bulunamadı.';
+      case 'auth/requires-recent-login':
+        return 'Bu işlem için yeniden giriş yapmanız gerekiyor.';
+      default:
+        return 'Email doğrulama gönderilemedi. Lütfen tekrar deneyin.';
+    }
+  }
+
+  getPasswordResetErrorMessage(errorCode) {
+    switch (errorCode) {
+      case 'auth/user-not-found':
+        return 'Bu email adresi ile kayıtlı hesap bulunamadı.';
+      case 'auth/invalid-email':
+        return 'Geçersiz email adresi.';
+      case 'auth/too-many-requests':
+        return 'Çok fazla şifre sıfırlama isteği gönderildi. Lütfen bir süre bekleyin.';
+      case 'auth/network-request-failed':
+        return 'İnternet bağlantısı sorunu. Lütfen tekrar deneyin.';
+      default:
+        return 'Şifre sıfırlama emaili gönderilemedi. Lütfen tekrar deneyin.';
     }
   }
 }

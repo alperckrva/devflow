@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { flushSync } from 'react-dom';
+import { Toaster } from 'react-hot-toast';
 import './App.css';
 
 // Components
@@ -30,16 +31,25 @@ class React19ErrorBoundary extends React.Component {
     if (error.message && (
       error.message.includes('insertBefore') ||
       error.message.includes('removeChild') ||
-      error.message.includes('Node')
+      error.message.includes('Node') ||
+      error.name === 'NotFoundError'
     )) {
-      console.warn('React 19 DOM error caught and handled:', error.message);
+      // Silently handle React 19 DOM errors - don't even log in production
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('React 19 DOM error caught and handled:', error.message);
+      }
       return { hasError: false }; // Continue rendering
     }
     return { hasError: true };
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('React 19 Error Boundary:', error, errorInfo);
+    // Only log real errors, not React 19 DOM issues
+    if (!error.message?.includes('removeChild') && 
+        !error.message?.includes('insertBefore') && 
+        error.name !== 'NotFoundError') {
+      console.error('React 19 Error Boundary:', error, errorInfo);
+    }
   }
 
   render() {
@@ -113,6 +123,43 @@ function App() {
                   <Route path="/register" element={<Register />} />
                 </Routes>
               </Layout>
+              
+              {/* 🔥 Toast Notification System */}
+              <Toaster
+                position="top-right"
+                reverseOrder={false}
+                gutter={8}
+                containerClassName=""
+                containerStyle={{}}
+                toastOptions={{
+                  // Default options for all toasts
+                  duration: 4000,
+                  style: {
+                    background: '#363636',
+                    color: '#fff',
+                  },
+                  // Success
+                  success: {
+                    duration: 3000,
+                    theme: {
+                      primary: 'green',
+                      secondary: 'black',
+                    },
+                  },
+                  // Error
+                  error: {
+                    duration: 5000,
+                    style: {
+                      background: '#ef4444',
+                      color: '#fff',
+                    },
+                  },
+                  // Loading
+                  loading: {
+                    duration: 2000,
+                  },
+                }}
+              />
             </div>
           </Router>
         </UserProvider>

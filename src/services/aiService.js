@@ -1,37 +1,59 @@
 // OpenRouter API entegrasyonu
 class AIServisi {
   constructor() {
-    this.apiAnahtari = process.env.OPENROUTER_API_KEY || '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';
-    // Development için Netlify dev server URL'i, production için relative path
-    this.baseURL = process.env.NODE_ENV === 'development' ? 
-      '/.netlify/functions/ai-analysis' : 
-      '/.netlify/functions/ai-analysis';
+    // 🔒 GÜVENLİK: API anahtarını environment variable'dan al
+    this.apiAnahtari = process.env.REACT_APP_OPENROUTER_API_KEY;
+    
+    // 🚨 API anahtarı yoksa hata fırlat
+    if (!this.apiAnahtari) {
+      throw new Error('🚨 OPENROUTER_API_KEY environment variable bulunamadı! .env.local dosyasını kontrol edin.');
+    }
+    
+    // Base URL environment'a göre ayarla
+    this.baseURL = this.getBaseURL();
   }
 
-  // Kullanılabilir ücretsiz modeller
+  // Environment'a göre base URL belirle
+  getBaseURL() {
+    if (process.env.NODE_ENV === 'development') {
+      return '/.netlify/functions/ai-analysis';
+    }
+    return '/.netlify/functions/ai-analysis';
+  }
+
+  // Mevcut modelleri getir
   getAvailableModels() {
     return [
-      {
-        id: 'google/gemma-2-9b-it:free',
-        name: 'Gemma 2 9B',
-        description: 'Google\'ın ücretsiz AI modeli'
+      { 
+        id: 'google/gemma-2-9b-it:free', 
+        name: 'Gemma 2 9B (Ücretsiz)', 
+        description: 'Google\'ın ücretsiz modeli',
+        provider: 'Google',
+        context: '8K',
+        pricing: 'Ücretsiz'
       },
-      {
-        id: 'microsoft/phi-3-mini-128k-instruct:free',
-        name: 'Phi-3 Mini',
-        description: 'Microsoft\'un ücretsiz AI modeli'
+      { 
+        id: 'microsoft/phi-3-mini-128k-instruct:free', 
+        name: 'Phi-3 Mini (Ücretsiz)', 
+        description: 'Microsoft\'un hafif modeli',
+        provider: 'Microsoft', 
+        context: '128K',
+        pricing: 'Ücretsiz'
       },
-      {
-        id: 'meta-llama/llama-3-8b-instruct:free',
-        name: 'Llama 3 8B',
-        description: 'Meta\'nın ücretsiz Llama modeli'
+      { 
+        id: 'meta-llama/llama-3-8b-instruct:free', 
+        name: 'Llama 3 8B (Ücretsiz)', 
+        description: 'Meta\'nın açık kaynak modeli',
+        provider: 'Meta',
+        context: '8K', 
+        pricing: 'Ücretsiz'
       }
     ];
   }
 
   // Kod analizi için sistem prompt'u
   getSystemPrompt() {
-    return `Sen uzman bir yazılım geliştirici ve kod inceleyicisisin. Verilen kodu detaylıca analiz et ve aşağıdaki formatı kullanarak Türkçe yanıt ver:
+    return `Sen uzman bir yazılım geliştirici ve kod inceleyicisisin. Verilen kodu detaylıca analiz et ve aşağıdaki formatı kullanarak MUTLAKA TÜRKÇE yanıt ver:
 
 🔍 **KOD ANALİZİ**
 

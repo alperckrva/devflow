@@ -19,6 +19,16 @@ export default async function handler(req, res) {
     return;
   }
 
+  // 🔒 GÜVENLİK: API anahtarını kontrol et
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    console.error('❌ OPENROUTER_API_KEY environment variable bulunamadı!');
+    res.status(500).json({ 
+      error: 'Server configuration error: API key not found'
+    });
+    return;
+  }
+
   try {
     const { model, messages, temperature, max_tokens } = req.body;
     
@@ -34,7 +44,7 @@ export default async function handler(req, res) {
       presence_penalty: 0
     }, {
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY || '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'}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.CLIENT_URL || 'https://devflow-platform-p5hrpqrcr-alperencukurovas-projects.vercel.app'
       }

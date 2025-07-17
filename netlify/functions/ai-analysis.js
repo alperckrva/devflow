@@ -26,6 +26,19 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // 🔒 GÜVENLİK: API anahtarını kontrol et
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    console.error('❌ OPENROUTER_API_KEY environment variable bulunamadı!');
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Server configuration error: API key not found'
+      })
+    };
+  }
+
   try {
     const { model, messages, temperature, max_tokens } = JSON.parse(event.body);
     
@@ -41,7 +54,7 @@ exports.handler = async (event, context) => {
       presence_penalty: 0
     }, {
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY || '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'}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.CLIENT_URL || 'https://devflow-platform.netlify.app'
       }

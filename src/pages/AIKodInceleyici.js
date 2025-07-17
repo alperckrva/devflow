@@ -13,6 +13,7 @@ import aiServisi from '../services/aiService';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
 import firebaseService from '../services/firebaseService';
+import toast from 'react-hot-toast';
 
 const AIKodInceleyici = () => {
   const [girilenKod, setGirilenKod] = useState('');
@@ -115,7 +116,9 @@ Bu kod bir React bileşeni oluşturuyor ve veri çekme işlemi gerçekleştiriyo
   // AI analizi
   const kodAnalizi = useCallback(async () => {
     if (!girilenKod.trim()) {
-      setHata('Lütfen analiz edilecek kodu girin!');
+      const errorMsg = 'Lütfen analiz edilecek kodu girin!';
+      setHata(errorMsg);
+      toast.error(errorMsg);
       return;
     }
 
@@ -123,42 +126,71 @@ Bu kod bir React bileşeni oluşturuyor ve veri çekme işlemi gerçekleştiriyo
     setHata('');
     setAiCevabi('');
 
+    // Loading toast
+    const loadingToast = toast.loading('AI kod analizi yapılıyor...', {
+      duration: 30000, // Longer duration for AI analysis
+    });
+
     try {
       const analizSonucu = await aiServisi.kodAnalizi(girilenKod, secilenModel);
       console.log('AI Cevabı alındı:', analizSonucu);
       setAiCevabi(analizSonucu);
       
+      // Success toast
+      toast.success('Kod analizi tamamlandı! 🤖', {
+        id: loadingToast,
+        duration: 3000,
+      });
+      
       // AI analizi başarılı oldu - istatistik artır
       if (user) {
         await firebaseService.incrementAIAnalysis(user.uid);
+        toast('📊 İstatistikler güncellendi', {
+          icon: '📊',
+          duration: 2000,
+        });
       }
     } catch (error) {
       console.error('AI API Hatası:', error);
       
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+      
       // CORS hatası özel mesajı
       if (error.message.includes('CORS') || error.message.includes('Network') || error.message.includes('fetch')) {
-        setHata(`CORS/Network Hatası: Tarayıcı güvenlik politikası API erişimini engelliyor. 
-
-⚠️ Bu sorun neden oluyor?
-• Tarayıcılar güvenlik nedeniyle farklı domain'lere direkt istek atmayı engelliyor
-• OpenRouter API CORS başlıklarını bu domain için açmamış olabilir
-
-🔧 Çözüm önerileri:
-• Browser extension ile CORS'u devre dışı bırakabilirsiniz (geliştirme için)
-• Veya aşağıdaki demo sonuçları kullanabilirsiniz`);
+        const corsErrorMsg = 'API bağlantı sorunu tespit edildi. Demo sonucu gösteriliyor...';
+        setHata(corsErrorMsg);
+        
+        toast.error('API bağlantı sorunu', {
+          duration: 4000,
+        });
+        
+        toast('🔄 Demo sonucu yükleniyor...', {
+          icon: '🔄',
+          duration: 2000,
+        });
         
         // Demo sonuç göster ve istatistik artır
         safeTimeout(() => {
           const demoResult = getDemoAnalysis();
           console.log('Demo cevabı ayarlanıyor:', demoResult);
           setAiCevabi(demoResult);
+          
+          toast.success('Demo analizi hazır! 📝', {
+            duration: 3000,
+          });
+          
           // Demo sonucu da sayılsın
           if (user) {
             firebaseService.incrementAIAnalysis(user.uid);
           }
         }, 1000);
       } else {
-        setHata(error.message || 'AI analizi sırasında bir hata oluştu.');
+        const errorMsg = error.message || 'AI analizi sırasında bir hata oluştu.';
+        setHata(errorMsg);
+        toast.error(errorMsg, {
+          duration: 5000,
+        });
       }
     } finally {
       setYukleniyor(false);
@@ -457,20 +489,15 @@ print(processed)`
                 )}
               </div>
             </div>
-            <div className={`rounded-lg p-4 text-sm whitespace-pre-wrap ${
+            <div className={`rounded-lg p-4 text-sm ${
               darkMode 
                 ? 'bg-gray-700 text-gray-200' 
                 : 'bg-gray-50 text-gray-900'
             }`}>
               {aiCevabi ? (
-                <div>
-                  {process.env.NODE_ENV === 'development' && (
-                    <div className="text-xs text-gray-500 mb-2">
-                      Debug: AI Cevabı var ({aiCevabi.length} karakter)
-                    </div>
-                  )}
-                  <div>{aiCevabi}</div>
-                </div>
+                <pre className="whitespace-pre-wrap font-sans leading-relaxed">
+                  {aiCevabi}
+                </pre>
               ) : (
                 <div className={`text-center py-8 ${
                   darkMode ? 'text-gray-500' : 'text-gray-400'
