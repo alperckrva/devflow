@@ -1,16 +1,121 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, memo } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { LogOut, User } from 'lucide-react';
 
-const Layout = ({ children }) => {
-  const [sidebarAcik, setSidebarAcik] = useState(true);
+// 🚀 Performance: Menu item bileşeni memoize edildi
+const MenuItem = memo(({ item, location, darkMode }) => (
+  <Link
+    to={item.yol}
+    className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 ${
+      location.pathname === item.yol
+        ? 'bg-blue-600 text-white shadow-lg'
+        : darkMode
+          ? 'text-gray-300 hover:bg-gray-700 hover:text-white'
+          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+    }`}
+  >
+    <span className="mr-3">{item.ikon}</span>
+    <span>{item.isim}</span>
+  </Link>
+));
+
+MenuItem.displayName = 'MenuItem';
+
+// 🚀 Performance: User info bileşeni memoize edildi
+const UserInfo = memo(({ user, darkMode }) => (
+  <div className={`transition-all duration-300 ${
+    user ? 'opacity-100 mb-3' : 'opacity-0 mb-0 h-0 overflow-hidden'
+  }`}>
+    <div className="flex items-center">
+      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+        <User className="h-4 w-4 text-white" />
+      </div>
+      <div className="ml-3 flex-1 min-w-0">
+        <p className={`text-sm font-medium truncate ${
+          darkMode ? 'text-white' : 'text-gray-900'
+        }`}>
+          {user?.displayName || 'Kullanıcı'}
+        </p>
+        <p className={`text-xs truncate ${
+          darkMode ? 'text-gray-400' : 'text-gray-500'
+        }`}>
+          {user?.email || ''}
+        </p>
+      </div>
+    </div>
+  </div>
+));
+
+UserInfo.displayName = 'UserInfo';
+
+// 🚀 Performance: User actions bileşeni memoize edildi
+const UserActions = memo(({ user, darkMode, location, handleLogout }) => (
+  <div className={`space-y-1 transition-all duration-300 ${
+    user ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'
+  }`}>
+    <Link
+      to="/profile"
+      className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+        location.pathname === '/profile'
+          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+      }`}
+    >
+      <User className="h-4 w-4 mr-3" />
+      Profil Ayarları
+    </Link>
+    <button
+      onClick={handleLogout}
+      className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+    >
+      <LogOut className="h-4 w-4 mr-3" />
+      Çıkış Yap
+    </button>
+  </div>
+));
+
+UserActions.displayName = 'UserActions';
+
+// 🚀 Performance: Login buttons bileşeni memoize edildi
+const LoginButtons = memo(({ user, darkMode }) => (
+  <div className={`space-y-2 transition-all duration-300 ${
+    !user ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'
+  }`}>
+    <Link
+      to="/login"
+      className={`block w-full text-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+        darkMode
+          ? 'bg-blue-600 text-white hover:bg-blue-700'
+          : 'bg-blue-600 text-white hover:bg-blue-700'
+      }`}
+    >
+      Giriş Yap
+    </Link>
+    <Link
+      to="/register"
+      className={`block w-full text-center px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+        darkMode
+          ? 'border-gray-600 text-gray-300 hover:bg-gray-700'
+          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+      }`}
+    >
+      Kayıt Ol
+    </Link>
+  </div>
+));
+
+LoginButtons.displayName = 'LoginButtons';
+
+const Layout = memo(({ children }) => {
+  const [sidebarAcik, setSidebarAcik] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
   const { darkMode, toggleDarkMode } = useTheme();
   const { user, cikisYap } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
 
+  // 🚀 Performance: Menu items memoize edildi
   const menuItems = useMemo(() => [
     {
       id: 'ana-sayfa',
@@ -43,22 +148,22 @@ const Layout = ({ children }) => {
       )
     },
     {
-      id: 'planlama',
-      isim: 'Planlama Sistemi',
-      yol: '/planlama',
-      ikon: (
-        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      )
-    },
-    {
       id: 'not-defteri',
       isim: 'Not Defteri',
       yol: '/not-defteri',
       ikon: (
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      )
+    },
+    {
+      id: 'planlama',
+      isim: 'Planlama',
+      yol: '/planlama',
+      ikon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       )
     },
@@ -68,198 +173,189 @@ const Layout = ({ children }) => {
       yol: '/github-projelerim',
       ikon: (
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       )
     }
   ], []);
 
-  const handleLogout = useCallback(() => {
-    cikisYap();
+  // 🚀 Performance: Event handler memoize edildi
+  const handleLogout = useCallback(async () => {
+    try {
+      await cikisYap();
     navigate('/login');
+    } catch (error) {
+      console.error('Çıkış yaparken hata:', error);
+    }
   }, [cikisYap, navigate]);
 
   const toggleSidebar = useCallback(() => {
     setSidebarAcik(prev => !prev);
   }, []);
 
-  const closeSidebar = useCallback(() => {
-    setSidebarAcik(false);
-  }, []);
-
-  const openSidebar = useCallback(() => {
-    setSidebarAcik(true);
-  }, []);
+  // Login ve register sayfalarında sidebar gizle
+  const hideSidebar = location.pathname === '/login' || location.pathname === '/register';
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      {!hideSidebar && (
+        <>
+          {/* Mobile Sidebar Overlay */}
+          {sidebarAcik && (
+            <div
+              className="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden"
+              onClick={toggleSidebar}
+            />
+          )}
+
         {/* Sidebar */}
-        <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out ${
+          <div className={`fixed inset-y-0 left-0 z-30 w-64 transform transition-transform duration-300 ease-in-out ${
           sidebarAcik ? 'translate-x-0' : '-translate-x-full'
         }`}>
-          <div className="flex flex-col h-full">
-            {/* Logo/Başlık */}
+            <div className={`flex flex-col h-full ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            } border-r shadow-lg`}>
+              {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">DevFlow</h1>
-              <button
-                onClick={closeSidebar}
-                className="p-2 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Menu Items */}
-            <nav className="flex-1 px-4 py-6 space-y-2">
-              {menuItems.map((item, index) => (
-                <Link
-                  key={item.id}
-                  to={item.yol}
-                  className={`flex items-center px-3 py-2 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                    location.pathname === item.yol 
-                      ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' 
-                      : ''
-                  }`}
-                >
-                  <span className="mr-3">{item.ikon}</span>
-                  {item.isim}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Dark Mode Toggle */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-              <button
-                onClick={toggleDarkMode}
-                className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                {darkMode ? (
-                  <>
-                    <svg className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    Açık Tema
-                  </>
-                ) : (
-                  <>
-                    <svg className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                    </svg>
-                    Koyu Tema
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* User Section - Always rendered */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-              {/* User info - visible when logged in */}
-              <div className={`transition-all duration-300 ${
-                user ? 'opacity-100 mb-3' : 'opacity-0 mb-0 h-0 overflow-hidden'
-              }`}>
                 <div className="flex items-center">
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                    <User className="h-4 w-4 text-white" />
+              <button
+                    onClick={toggleSidebar}
+                    className={`mr-3 p-1 rounded-lg ${
+                      darkMode
+                        ? 'text-gray-400 hover:text-white hover:bg-gray-700'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+              </button>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                    <img 
+                      src="/devfloww.ico" 
+                      alt="DevFlow" 
+                      className="w-full h-full object-contain"
+                    />
                   </div>
-                  <div className="ml-3 flex-1 min-w-0">
-                    <p className={`text-sm font-medium truncate ${
+                  <h1 className={`ml-3 text-xl font-bold ${
                       darkMode ? 'text-white' : 'text-gray-900'
                     }`}>
-                      {user?.displayName || 'Kullanıcı'}
-                    </p>
-                    <p className={`text-xs truncate ${
-                      darkMode ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
-                      {user?.email || ''}
-                    </p>
-                  </div>
+                    DevFlow
+                  </h1>
                 </div>
-              </div>
-
-              {/* User actions - visible when logged in */}
-              <div className={`space-y-1 transition-all duration-300 ${
-                user ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'
-              }`}>
-                <Link
-                  to="/profile"
-                  className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/profile'
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                      : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                <button
+                  onClick={toggleDarkMode}
+                  className={`p-2 rounded-lg transition-colors ${
+                    darkMode
+                      ? 'text-gray-400 hover:text-white hover:bg-gray-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
-                  <User className="h-4 w-4 mr-3" />
-                  Profil Ayarları
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <LogOut className="h-4 w-4 mr-3" />
-                  Çıkış Yap
+                  {darkMode ? '🌞' : '🌙'}
                 </button>
               </div>
 
-              {/* Login buttons - visible when not logged in */}
-              <div className={`space-y-2 transition-all duration-300 ${
-                !user ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'
-              }`}>
-                <button
-                  onClick={() => navigate('/login')}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                >
-                  Giriş Yap
-                </button>
-                <button
-                  onClick={() => navigate('/register')}
-                  className="w-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                >
-                  Kayıt Ol
-                </button>
+              {/* Navigation */}
+              <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                {menuItems.map((item) => (
+                  <MenuItem 
+                    key={item.id} 
+                    item={item} 
+                    location={location} 
+                    darkMode={darkMode}
+                  />
+                ))}
+              </nav>
+
+              {/* User section */}
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                <UserInfo user={user} darkMode={darkMode} />
+                <UserActions 
+                  user={user} 
+                  darkMode={darkMode} 
+                  location={location} 
+                  handleLogout={handleLogout}
+                />
+                <LoginButtons user={user} darkMode={darkMode} />
               </div>
             </div>
           </div>
-        </div>
+        </>
+      )}
 
-        {/* Overlay - Always rendered but conditionally visible */}
-        <div
-          className={`fixed inset-0 bg-black z-40 lg:hidden transition-opacity duration-300 ${
-            sidebarAcik ? 'bg-opacity-50 pointer-events-auto' : 'bg-opacity-0 pointer-events-none'
-          }`}
-          onClick={closeSidebar}
-        />
+      {/* Toggle Button - Sidebar Kapalıyken */}
+      {!hideSidebar && !sidebarAcik && (
+        <button
+          onClick={toggleSidebar}
+          className={`fixed top-4 left-4 z-40 p-3 rounded-lg shadow-lg ${
+            darkMode
+              ? 'bg-gray-800 text-gray-200 hover:bg-gray-700 border border-gray-700'
+              : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+          } transition-all duration-200`}
+        >
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      )}
 
         {/* Main Content */}
-        <div className={`${sidebarAcik ? 'lg:ml-64' : ''} transition-all duration-300`}>
-          <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-            <div className="px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between h-16">
-                <div className="flex items-center">
+      <div className={`min-h-screen ${
+        !hideSidebar && sidebarAcik ? 'lg:ml-64' : ''
+      } transition-all duration-300 ease-in-out`}>
+        {/* Mobile Header */}
+        {!hideSidebar && (
+          <div className={`lg:hidden ${
+            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+          } border-b p-4 flex items-center justify-between`}>
                   <button
-                    onClick={openSidebar}
-                    className={`p-2 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                      sidebarAcik ? 'lg:hidden' : ''
+              onClick={toggleSidebar}
+              className={`p-2 rounded-lg ${
+                darkMode
+                  ? 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                   </button>
-                </div>
+            <div className="flex items-center">
+              <div className="w-6 h-6 rounded flex items-center justify-center mr-2 overflow-hidden">
+                <img 
+                  src="/devfloww.ico" 
+                  alt="DevFlow" 
+                  className="w-full h-full object-contain"
+                />
               </div>
+              <h1 className={`text-lg font-bold ${
+                darkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                DevFlow
+              </h1>
             </div>
+            <button
+              onClick={toggleDarkMode}
+              className={`p-2 rounded-lg ${
+                darkMode
+                  ? 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              {darkMode ? '🌞' : '🌙'}
+            </button>
           </div>
+        )}
 
-          <main className="py-6 px-4 sm:px-6 lg:px-8">
+        {/* Page Content */}
+        <main className="p-6">
             {children}
           </main>
-        </div>
       </div>
     </div>
   );
-};
+});
+
+Layout.displayName = 'Layout';
 
 export default Layout; 
