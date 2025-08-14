@@ -258,12 +258,29 @@ const Layout = memo(({ children }) => {
               {/* Navigation */}
               <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                 {menuItems.map((item) => (
-                  <MenuItem 
-                    key={item.id} 
-                    item={item} 
-                    location={location} 
-                    darkMode={darkMode}
-                  />
+                  <React.Fragment key={item.id}>
+                    <MenuItem 
+                      item={item} 
+                      location={location} 
+                      darkMode={darkMode}
+                    />
+                    {item.id === 'github-projelerim' && (
+                      <a
+                        href="/indir/app-debug.apk"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          color: "#fff",
+                          textDecoration: "none",
+                          marginLeft: "32px",
+                          marginTop: "8px",
+                          display: "block"
+                        }}
+                      >
+                        📱 Mobil Uygulama (APK) İndir (Beta Sürüm)
+                      </a>
+                    )}
+                  </React.Fragment>
                 ))}
               </nav>
 

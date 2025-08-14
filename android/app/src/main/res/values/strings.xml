@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DevFlow</string>
+    <string name="title_activity_main">DevFlow</string>
+    <string name="package_name">com.alperencukurova.devflow</string>
+    <string name="custom_url_scheme">com.alperencukurova.devflow</string>
+</resources>
